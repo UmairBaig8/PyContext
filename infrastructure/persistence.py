@@ -11,51 +11,49 @@ class SQLiteCheckpointRepository(CheckpointRepository):
         self._init_db()
     
     def _init_db(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS checkpoints (
-                workflow_id TEXT PRIMARY KEY,
-                current_step INTEGER,
-                state TEXT,
-                context_data TEXT,
-                metadata TEXT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS checkpoints (
+                    workflow_id TEXT PRIMARY KEY,
+                    current_step INTEGER,
+                    state TEXT,
+                    context_data TEXT,
+                    metadata TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
     
     async def save(self, checkpoint: WorkflowCheckpoint) -> None:
         def _save():
-            conn = sqlite3.connect(self.db_path)
-            conn.execute("""
-                INSERT OR REPLACE INTO checkpoints 
-                (workflow_id, current_step, state, context_data, metadata)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                checkpoint.workflow_id,
-                checkpoint.current_step,
-                checkpoint.state.value,
-                json.dumps(checkpoint.context_data),
-                json.dumps(checkpoint.metadata)
-            ))
-            conn.commit()
-            conn.close()
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    INSERT OR REPLACE INTO checkpoints 
+                    (workflow_id, current_step, state, context_data, metadata)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    checkpoint.workflow_id,
+                    checkpoint.current_step,
+                    checkpoint.state.value,
+                    json.dumps(checkpoint.context_data),
+                    json.dumps(checkpoint.metadata)
+                ))
+                conn.commit()
         
-        await asyncio.get_event_loop().run_in_executor(None, _save)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _save)
     
     async def load(self, workflow_id: str) -> Optional[WorkflowCheckpoint]:
         def _load():
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.execute(
-                "SELECT * FROM checkpoints WHERE workflow_id = ?", 
-                (workflow_id,)
-            )
-            row = cursor.fetchone()
-            conn.close()
-            return row
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "SELECT * FROM checkpoints WHERE workflow_id = ?", 
+                    (workflow_id,)
+                )
+                return cursor.fetchone()
         
-        row = await asyncio.get_event_loop().run_in_executor(None, _load)
+        loop = asyncio.get_event_loop()
+        row = await loop.run_in_executor(None, _load)
         
         if row:
             return WorkflowCheckpoint(
@@ -69,9 +67,9 @@ class SQLiteCheckpointRepository(CheckpointRepository):
     
     async def delete(self, workflow_id: str) -> None:
         def _delete():
-            conn = sqlite3.connect(self.db_path)
-            conn.execute("DELETE FROM checkpoints WHERE workflow_id = ?", (workflow_id,))
-            conn.commit()
-            conn.close()
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("DELETE FROM checkpoints WHERE workflow_id = ?", (workflow_id,))
+                conn.commit()
         
-        await asyncio.get_event_loop().run_in_executor(None, _delete)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _delete)

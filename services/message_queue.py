@@ -54,7 +54,13 @@ class WorkflowMessageQueue:
                 raise  # Re-raise to handle in consumer
             except Exception as e:
                 if message.context.logger:
-                    message.context.logger.error(f"❌ Failed {message.workflow_name}: {e}")
+                    # Sanitize workflow name to prevent log injection
+                    safe_name = message.workflow_name.replace('\n', '').replace('\r', '')
+                    message.context.logger.error(f"❌ Failed {safe_name}: {e}")
+        else:
+            if message.context.logger:
+                safe_name = message.workflow_name.replace('\n', '').replace('\r', '')
+                message.context.logger.error(f"⚠️ Workflow '{safe_name}' not registered")
     
     def stop(self):
         self.running = False

@@ -1,4 +1,5 @@
 from domain.entities import WorkflowContext
+from .utils import generate_deterministic_id, validate_numeric_input
 
 # E-commerce Order Processing Pipeline
 def inventory_check_step(context: WorkflowContext) -> WorkflowContext:
@@ -12,10 +13,10 @@ def inventory_check_step(context: WorkflowContext) -> WorkflowContext:
 def payment_processing_step(context: WorkflowContext) -> WorkflowContext:
     """Process customer payment and handle transactions"""
     payment_method = context.request.get('payment_method', 'credit_card')
-    amount = context.request.get('total_amount', 0)
+    amount = validate_numeric_input(context.request.get('total_amount', 0), 'total_amount')
     
     context.data['payment_processed'] = True
-    context.data['transaction_id'] = f'txn_{hash(str(amount))}'
+    context.data['transaction_id'] = generate_deterministic_id(f'{amount}_{payment_method}', 'txn_')
     context.data['payment_status'] = 'completed'
     context.data['charged_amount'] = amount
     return context
@@ -26,7 +27,7 @@ def shipping_calculation_step(context: WorkflowContext) -> WorkflowContext:
     context.data['shipping_cost'] = 15.99
     context.data['estimated_delivery'] = '3-5_business_days'
     context.data['shipping_carrier'] = 'FedEx'
-    context.data['tracking_number'] = f'FX{hash(str(shipping_address))}'
+    context.data['tracking_number'] = generate_deterministic_id(str(shipping_address), 'FX')
     return context
 
 def order_fulfillment_step(context: WorkflowContext) -> WorkflowContext:

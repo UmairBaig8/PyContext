@@ -23,8 +23,8 @@ async def realistic_demo():
     # Service layer
     mq = WorkflowMessageQueue(preemptive=True, checkpoint_repo=checkpoint_repo)
     
-    # Configure workflow engines
-    data_processing_engine = WorkflowEngine(checkpoint_repo)
+    # Configure workflow engines with demo timing
+    data_processing_engine = WorkflowEngine(checkpoint_repo, step_delay=2.0)  # 2s for demo
     data_processing_engine.configure('data-processing', [
         data_extraction_step,
         data_transformation_step, 
@@ -32,7 +32,7 @@ async def realistic_demo():
         audit_logging_step
     ])
     
-    urgent_notification_engine = WorkflowEngine(checkpoint_repo)
+    urgent_notification_engine = WorkflowEngine(checkpoint_repo, step_delay=2.0)  # 2s for demo
     urgent_notification_engine.configure('urgent-notification', [
         notification_step
     ])

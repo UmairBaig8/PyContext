@@ -4,10 +4,11 @@ from domain.entities import WorkflowContext, WorkflowCheckpoint, WorkflowState
 from domain.repositories import CheckpointRepository
 
 class WorkflowEngine:
-    def __init__(self, checkpoint_repo: Optional[CheckpointRepository] = None):
+    def __init__(self, checkpoint_repo: Optional[CheckpointRepository] = None, step_delay: float = 0.0):
         self.checkpoint_repo = checkpoint_repo
         self.steps: List[Callable] = []
         self.name = ""
+        self.step_delay = step_delay  # Configurable delay for testing vs production
     
     def configure(self, name: str, steps: List[Callable]):
         self.name = name
@@ -81,6 +82,7 @@ class WorkflowEngine:
         return context
     
     async def _execute_step(self, step: Callable, context: WorkflowContext) -> WorkflowContext:
-        # Simulate realistic processing time
-        await asyncio.sleep(2)  # 2 seconds per step
+        # Configurable delay for testing vs production
+        if self.step_delay > 0:
+            await asyncio.sleep(self.step_delay)
         return step(context)
